@@ -13,3 +13,6 @@ Static site: `index.html` plus the `assets/` folder. No build step.
 - Hero animation: the movements are defined in the `MOVES` list in `index.html` (name, reps, plates per side, which joint angles to label). Change a `plates` list to change the weights shown.
 - Photos: swap any file in `assets/` for a new one with the same name.
 - Contact: search `index.html` for `917887884566` and `husein2709@gmail.com`.
+
+- Prices: the Pricing section in `index.html`. In-person tiers are in the `TIER` list in the script (sessions: price, sessions a week); the Founding 5, Hybrid and Online prices are plain text in the section.
+- Link preview: `assets/share-card.jpg` (1200 x 630). Replace the file to change what WhatsApp and social apps show.

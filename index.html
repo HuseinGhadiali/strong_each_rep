@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Husein Ghadiali - Strength & Endurance Coach, Pune</title>
 <meta name="description" content="In-person strength, running and cycling coaching in Pune and Mumbai with Husein Ghadiali. Form first, plans built on your own numbers.">
-<meta property="og:title" content="Husein Ghadiali - Strong is a skill">
-<meta property="og:description" content="In-person strength, running and cycling coaching in Pune and Mumbai.">
+<meta property="og:title" content="Strong is a skill. Coaching in Pune, rep by rep.">
+<meta property="og:description" content="In-person strength, running and cycling coaching with Husein Ghadiali. Form first, plans built on your own numbers.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="assets/portrait.jpg">
+<meta property="og:url" content="https://huseinghadiali.github.io/strong_each_rep/">
+<meta property="og:image" content="https://huseinghadiali.github.io/strong_each_rep/assets/share-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Strong is a skill. In-person strength and endurance coaching in Pune.">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' fill='%23000'/%3E%3Cpath d='M5 4h5v20H5zM18 4h5v20h-5zM10 12h8v4h-8z' fill='%23FFC400'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +63,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:90;opa
   opacity:0;pointer-events:none;transition:opacity .5s var(--ease)}
 .menu.open{opacity:1;pointer-events:auto}
 .menu-top{display:flex;align-items:center;justify-content:space-between;padding:22px var(--px)}
-.menu nav{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+.menu nav{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
 .menu nav a{font-size:1.5rem;letter-spacing:.14em;text-transform:uppercase;opacity:0;transform:translateY(16px);
   transition:opacity .5s var(--ease),transform .5s var(--ease)}
 .menu.open nav a{opacity:1;transform:none;transition-delay:calc(100ms + var(--i)*60ms)}
@@ -457,6 +462,30 @@ footer a:hover{color:#fff}
   .addrow .tag{grid-column:1/-1}
   .pticks{font-size:.9rem}
 }
+/* pricing */
+.found{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(16px,3vw,44px);align-items:center;border:1px solid var(--pop);padding:clamp(18px,2.6vw,30px);margin-top:48px;background:linear-gradient(90deg,rgba(255,196,0,.1),transparent 62%)}
+.found .big{font-family:var(--pixel);font-size:clamp(2.4rem,4.6vw,3.8rem);line-height:.85;color:var(--pop);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.found p{color:rgba(255,255,255,.86);max-width:64ch;font-size:.95rem}
+.rs{font-family:'Inter',system-ui,sans-serif}
+.plans{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3.5fr) minmax(0,3.5fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:18px}
+.plan{background:#000;padding:clamp(22px,3vw,38px);display:flex;flex-direction:column;gap:14px}
+.plan.main{background:var(--panel)}
+.plan h3{font-weight:400;text-transform:uppercase;letter-spacing:.04em;font-size:1.05rem;line-height:1.1}
+.plan h3 .pixel{display:block;font-size:2.3rem;line-height:.9;letter-spacing:.02em}
+.price{font-family:var(--pixel);font-size:clamp(3rem,5.2vw,4.4rem);line-height:.82;color:var(--pop);letter-spacing:.02em;font-variant-numeric:tabular-nums;text-shadow:0 0 28px rgba(255,196,0,.3);margin-top:8px;white-space:nowrap}
+.price .rs{font-weight:300;font-size:.6em;margin-right:.1em;text-shadow:none}
+.price small{font-size:.28em;color:var(--mute);letter-spacing:.1em;text-shadow:none;margin-left:.5em}
+.plan .psub{color:var(--mute);font-size:.9rem}
+.plan ul{display:grid;gap:7px;font-size:.9rem;color:rgba(255,255,255,.9);margin:4px 0 12px}
+.plan li{display:flex;gap:10px}
+.plan li::before{content:"";flex:none;width:8px;height:8px;margin-top:.5em;background:var(--pop)}
+.plan .btn{margin-top:auto;justify-content:center}
+.pnotes{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-top:0}
+.pnotes>*{background:#000;padding:clamp(16px,2.2vw,26px);font-size:.9rem;color:var(--mute)}
+.pnotes b{color:#fff;font-weight:500}
+@media (max-width:1180px){.nav-links{gap:18px;font-size:.78rem}}
+@media (max-width:1023px){.found,.plans,.pnotes{grid-template-columns:1fr}.found .btn{justify-content:center}}
+@media (max-width:900px){.nav-links{display:none}.burger{display:block}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
   html{scroll-behavior:auto}
@@ -472,7 +501,7 @@ footer a:hover{color:#fff}
     <svg viewBox="0 0 28 28" fill="#fff" aria-hidden="true"><path d="M3 3h6v22H3zM19 3h6v22h-6zM9 11.5h10v5H9z"/></svg>
   </a>
   <nav class="nav-links" aria-label="Main">
-    <a href="#about">About</a><a href="#coaching">Coaching</a><a href="#tools">Tools</a><a href="#nutrition">Nutrition</a><a href="#record">Record</a><a href="#credentials">Credentials</a><a class="go" href="#enquire">Enquire</a>
+    <a href="#about">About</a><a href="#coaching">Coaching</a><a href="#tools">Tools</a><a href="#nutrition">Nutrition</a><a href="#record">Record</a><a href="#credentials">Credentials</a><a href="#pricing">Pricing</a><a class="go" href="#enquire">Enquire</a>
   </nav>
   <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
     <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -488,7 +517,7 @@ footer a:hover{color:#fff}
   </div>
   <nav aria-label="Mobile">
     <a style="--i:0" href="#about">About</a><a style="--i:1" href="#coaching">Coaching</a><a style="--i:2" href="#tools">Tools</a>
-    <a style="--i:3" href="#nutrition">Nutrition</a><a style="--i:4" href="#record">Record</a><a style="--i:5" href="#credentials">Credentials</a><a style="--i:6;color:var(--pop)" href="#enquire">Enquire</a>
+    <a style="--i:3" href="#nutrition">Nutrition</a><a style="--i:4" href="#record">Record</a><a style="--i:5" href="#credentials">Credentials</a><a style="--i:6" href="#pricing">Pricing</a><a style="--i:7;color:var(--pop)" href="#enquire">Enquire</a>
   </nav>
 </div>
 
@@ -932,6 +961,69 @@ footer a:hover{color:#fff}
   </div>
 </section>
 
+<!-- ================= PRICING ================= -->
+<section class="sec" id="pricing">
+  <div class="lab">Pricing</div>
+  <h2 class="h wipe"><span class="wi">What it costs.<br><span class="pixel">What you get</span></span></h2>
+  <p class="lede" style="margin-top:22px">Monthly plans. Sessions run 45 to 60 minutes, and every plan starts with a programme written for you.</p>
+
+  <div class="found">
+    <div class="big">Founding 5</div>
+    <p>My first five in-person clients train 12 sessions a month for <span class="rs">&#8377;</span>8,999, held for the first two months. After that it is the regular <span class="rs">&#8377;</span>10,999. In return I ask for honest feedback and, with your permission, a testimonial.</p>
+    <button class="btn pop" type="button" data-plan="Founding client offer">Claim a founding place</button>
+  </div>
+
+  <div class="plans">
+    <article class="plan main">
+      <h3>One to one <span class="pixel">In person</span></h3>
+      <div class="presets" id="tiers" role="group" aria-label="Sessions a month">
+        <button class="tag" type="button" data-n="8">Starter &middot; 8</button>
+        <button class="tag" type="button" data-n="12">Regular &middot; 12</button>
+        <button class="tag" type="button" data-n="16">Intensive &middot; 16</button>
+      </div>
+      <div class="price" aria-live="polite"><span class="rs">&#8377;</span><span id="pp">10,999</span><small>A MONTH</small></div>
+      <p class="psub" id="pp-sub">12 sessions, about 3 a week.</p>
+      <ul>
+        <li>A workout programme written for you</li>
+        <li>Technique and form correction in every session</li>
+        <li>Strength and performance tracking</li>
+        <li>A progress assessment every month</li>
+        <li>Basic nutrition and lifestyle guidance</li>
+      </ul>
+      <button class="btn pop" type="button" id="pp-btn" data-plan="In person, 12 sessions">Enquire about this plan</button>
+    </article>
+    <article class="plan">
+      <h3>Part supervised <span class="pixel">Hybrid</span></h3>
+      <div class="price"><span class="rs">&#8377;</span>7,499<small>A MONTH</small></div>
+      <p class="psub">4 in-person sessions, plus online programming.</p>
+      <ul>
+        <li>Four supervised sessions a month</li>
+        <li>A schedule for the days you train alone</li>
+        <li>Weekly check-ins</li>
+        <li>Progress tracking</li>
+      </ul>
+      <button class="btn" type="button" data-plan="Hybrid">Enquire about this plan</button>
+    </article>
+    <article class="plan">
+      <h3>Train anywhere <span class="pixel">Online</span></h3>
+      <div class="price"><span class="rs">&#8377;</span>4,999<small>A MONTH</small></div>
+      <p class="psub">No fixed live sessions.</p>
+      <ul>
+        <li>A personalised workout plan</li>
+        <li>Weekly progress check-ins</li>
+        <li>Exercise demonstration videos</li>
+        <li>Nutrition habit guidance</li>
+        <li>Accountability on WhatsApp</li>
+      </ul>
+      <button class="btn" type="button" data-plan="Online">Enquire about this plan</button>
+    </article>
+  </div>
+  <div class="pnotes">
+    <p><b>Training at your home or society gym.</b> From <span class="rs">&#8377;</span>14,000 for 12 sessions, depending on distance.</p>
+    <p><b>Where we train.</b> In-person sessions are in Pune, at a gym we agree on when you enquire.</p>
+  </div>
+</section>
+
 <!-- ================= ENQUIRE ================= -->
 <section class="sec" id="enquire">
   <div class="enq">
@@ -955,9 +1047,12 @@ footer a:hover{color:#fff}
           <select id="f-goal"><option>Get stronger</option><option>Build muscle</option><option>Lose fat</option><option>Learn to lift properly</option><option>Run faster or further</option><option>Ride longer</option></select>
         </label>
         <label class="field"><span>City</span>
-          <select id="f-city"><option>Pune</option><option>Mumbai</option></select>
+          <select id="f-city"><option>Pune</option><option>Mumbai</option><option>Elsewhere (online)</option></select>
         </label>
       </div>
+      <label class="field"><span>Plan you're interested in</span>
+        <select id="f-plan"><option>Not sure yet</option><option>In person, 8 sessions</option><option>In person, 12 sessions</option><option>In person, 16 sessions</option><option>Hybrid</option><option>Online</option><option>Founding client offer</option></select>
+      </label>
       <label class="field"><span>Training experience</span>
         <select id="f-exp"><option>New to training</option><option>Under a year</option><option>1 to 3 years</option><option>More than 3 years</option></select>
       </label>
@@ -1421,6 +1516,21 @@ footer a:hover{color:#fff}
   $('#lb-x').addEventListener('click', () => lb.close());
   lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
 
+  /* ---------- pricing: session selector, and plan buttons that fill in the enquiry form ---------- */
+  const TIER = { 8: [7999, 2], 12: [10999, 3], 16: [14499, 4] }, inr = n => n.toLocaleString('en-IN');
+  function tier(n) {
+    const [price, wk] = TIER[n];
+    $('#pp').textContent = inr(price); $('#pp-sub').textContent = `${n} sessions, about ${wk} a week. \u20b9${inr(Math.round(price / n))} a session.`;
+    $('#pp-btn').dataset.plan = `In person, ${n} sessions`;
+    $$('#tiers .tag').forEach(b => b.setAttribute('aria-pressed', +b.dataset.n === n));
+  }
+  $('#tiers').addEventListener('click', e => { const b = e.target.closest('.tag'); if (b) tier(+b.dataset.n); });
+  tier(12);
+  $$('#pricing [data-plan]').forEach(b => b.addEventListener('click', () => {
+    $('#f-plan').value = b.dataset.plan; if (b.dataset.plan === 'Online') $('#f-city').value = 'Elsewhere (online)';
+    $('#form').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); $('#f-name').focus({ preventScroll: true });
+  }));
+
   /* ---------- enquiry: opens WhatsApp or email with the details filled in ---------- */
   const form = $('#form'), msg = $('#f-msg');
   form.addEventListener('submit', e => {
@@ -1428,7 +1538,7 @@ footer a:hover{color:#fff}
     const name = $('#f-name').value.trim();
     if (!name) { msg.textContent = 'Add your name so I know who is writing.'; $('#f-name').focus(); return; }
     const note = $('#f-note').value.trim();
-    const text = `Hi Husein, I'm ${name}.\nGoal: ${$('#f-goal').value}\nCity: ${$('#f-city').value}\nExperience: ${$('#f-exp').value}` + (note ? `\nNotes: ${note}` : '');
+    const text = `Hi Husein, I'm ${name}.\nGoal: ${$('#f-goal').value}\nCity: ${$('#f-city').value}\nPlan: ${$('#f-plan').value}\nExperience: ${$('#f-exp').value}` + (note ? `\nNotes: ${note}` : '');
     const via = (e.submitter && e.submitter.dataset.via) || 'wa';
     const url = via === 'mail'
       ? `mailto:husein2709@gmail.com?subject=${encodeURIComponent('Coaching enquiry from ' + name)}&body=${encodeURIComponent(text)}`
