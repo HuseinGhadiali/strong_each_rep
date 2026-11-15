@@ -10,6 +10,6 @@ Static site: `index.html` plus the `assets/` folder. No build step.
 
 ## Things to edit later
 - K11 certificate: in the Credentials section, replace the `<div class="cert">` course card with a `<button class="doc">` like the three above it, pointing at your certificate image, and change "In progress" in the list.
-- Hero poses: the four pose images are embedded near `const POSES` in `index.html`. Ask Claude to regenerate them from new photos.
+- Hero animation: the movements are defined in the `MOVES` list in `index.html` (name, reps, plates per side). Change a `plates` list to change the weights shown.
 - Photos: swap any file in `assets/` for a new one with the same name.
 - Contact: search `index.html` for `917887884566` and `husein2709@gmail.com`.
