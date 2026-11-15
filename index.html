@@ -84,7 +84,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:90;opa
 @keyframes tube{0%{opacity:0}9%{opacity:.9}12%{opacity:.05}20%{opacity:.75}24%{opacity:.15}38%{opacity:.95}42%{opacity:.5}55%,100%{opacity:.82}}
 @keyframes wake{0%{opacity:0}22%{opacity:.05}26%{opacity:.4}30%{opacity:.08}46%{opacity:.55}50%{opacity:.25}70%,100%{opacity:1}}
 @keyframes drift{from{transform:scale(1.07)}to{transform:scale(1)}}
-#fig{position:absolute;inset:0;width:100%;height:100%;opacity:0}
+#fig,#ana{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+.hero.gl #ana{opacity:1}
 .hero.gl #fig{animation:wake 2.2s linear both}
 .hero.gl .hero-photo{opacity:0;transition:opacity .5s}
 .hero.gl .hero-bg::after{background:linear-gradient(to top,#000 0,rgba(0,0,0,.5) 10%,transparent 26%),linear-gradient(to bottom,rgba(0,0,0,.6),transparent 16%)}
@@ -444,7 +445,7 @@ footer a:hover{color:#fff}
 @media (max-width:1023px){.nav-links{gap:20px;font-size:.8rem}}
 @media (max-width:767px){
   .hero.gl{height:auto;min-height:100svh}
-  .hero.gl .spacer{min-height:280px}
+  .hero.gl .spacer{min-height:330px}
   .hud .led{font-size:2.5rem;margin-top:2px}
   .hud .lab{font-size:.9rem}
   .pcols{grid-template-columns:1fr}
@@ -497,6 +498,7 @@ footer a:hover{color:#fff}
   <div class="hero-bg" aria-hidden="true">
     <div class="hero-photo"><img src="assets/portrait.jpg" alt="" fetchpriority="high"></div>
     <canvas id="fig"></canvas>
+    <canvas id="ana"></canvas>
     <div class="tubes"><span class="tube"></span><span class="tube"></span><span class="tube"></span></div>
     <canvas id="chalk"></canvas>
     <div class="torch"></div>
@@ -1034,30 +1036,31 @@ footer a:hover{color:#fff}
   }
 
 
-  /* ---------- hero: a particle athlete that deadlifts, benches, cleans, hip-thrusts, runs and rides ---------- */
+  /* ---------- hero: motion-analysis view of an athlete who deadlifts, benches, cleans, hip-thrusts, runs and rides ---------- */
   (function athlete() {
-    const fig = $('#fig'), label = $('#pose'), hud = $('#hud'), hudN = $('#hud-n'), hudV = $('#hud-v'), hudU = $('#hud-u'), stage = $('.spacer', hero);
-    if (reduce || !fig) return;
-    const gl = fig.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: false });
+    const fig = $('#fig'), ana = $('#ana'), label = $('#pose'), hud = $('#hud'), hudN = $('#hud-n'), hudV = $('#hud-v'), hudU = $('#hud-u'), stage = $('.spacer', hero);
+    if (reduce || !fig || !ana) return;
+    const gl = fig.getContext('webgl', { antialias: false, alpha: true });
     if (!gl) return;
-    const small = innerWidth < 768, N = small ? 16000 : 32000;
+    const cx2 = ana.getContext('2d'), small = innerWidth < 768, N = small ? 26000 : 60000;
     const VS = `
-      attribute vec3 aP; attribute vec4 aC; attribute float aS;
+      attribute vec3 aP; attribute vec4 aC; attribute vec2 aS;
       uniform vec2 uRot, uOff; uniform float uScale, uAsp, uPx;
-      varying vec4 vC;
+      varying vec4 vC; varying float vAdd;
       void main() {
         vec3 p = aP - vec3(0., .82, 0.);
+        float fade = 1. - smoothstep(1.3, 2.5, length(aP.xz));
         float cy = cos(uRot.x), sy = sin(uRot.x), cx = cos(uRot.y), sx = sin(uRot.y);
         p = vec3(p.x * cy + p.z * sy, p.y, -p.x * sy + p.z * cy);
         p = vec3(p.x, p.y * cx - p.z * sx, p.y * sx + p.z * cx);
-        float k = 1. / (1. - p.z * .17);
+        float k = 1. / (1. - p.z * .2);
         gl_Position = vec4(p.x * k * uScale / uAsp + uOff.x, p.y * k * uScale + uOff.y, 0., 1.);
-        gl_PointSize = (1.25 + aS * 1.5) * k * uPx;
-        vC = vec4(aC.rgb * (.64 + .36 * smoothstep(-1.3, 1.1, p.z)), aC.a);
+        gl_PointSize = (.9 + aS.x * 1.3) * k * uPx;
+        vC = vec4(aC.rgb * (.55 + .45 * smoothstep(-1.4, 1.1, p.z)), aC.a * fade); vAdd = aS.y;
       }`;
     const FS = `
-      precision mediump float; varying vec4 vC;
-      void main() { float a = smoothstep(.5, .1, length(gl_PointCoord - .5)); gl_FragColor = vec4(vC.rgb, vC.a * a); }`;
+      precision mediump float; varying vec4 vC; varying float vAdd;
+      void main() { float a = smoothstep(.5, .08, length(gl_PointCoord - .5)) * vC.a; gl_FragColor = vec4(vC.rgb * a, a * (1. - vAdd)); }`;
     const mk = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return gl.getShaderParameter(o, gl.COMPILE_STATUS) ? o : null; };
     const vs = mk(gl.VERTEX_SHADER, VS), fs = mk(gl.FRAGMENT_SHADER, FS); if (!vs || !fs) return;
     const pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
@@ -1065,146 +1068,182 @@ footer a:hover{color:#fff}
     const U = n => gl.getUniformLocation(pr, n), uRot = U('uRot'), uOff = U('uOff'), uScale = U('uScale'), uAsp = U('uAsp'), uPx = U('uPx');
     const aP = gl.getAttribLocation(pr, 'aP'), aC = gl.getAttribLocation(pr, 'aC'), aS = gl.getAttribLocation(pr, 'aS');
 
-    // palette: chalk body, steel bar, competition plate colours, the green of the road bike
-    const C = { body: [.93, .96, .94], steel: [.74, .8, .82], slate: [.3, .4, .43], dim: [.26, .32, .34], pop: [1, .77, 0], bike: [.52, .93, .14], tyre: [.5, .56, .58] };
-    const PLATE = { 25: [[.87, .17, .19], .225, .05], 20: [[.15, .42, .9], .225, .045], 15: [[1, .77, 0], .2, .038], 10: [[.14, .7, .33], .17, .03], 5: [[.92, .92, .9], .13, .022] };
+    // palette. body and grid glow additively, like a scan; steel, plates and the bike are solid colour
+    const C = { body: [.7, .86, .95], steel: [.8, .85, .87], slate: [.36, .46, .5], grid: [.2, .34, .38], pop: [1, .77, 0], bike: [.5, .92, .12], tyre: [.55, .62, .65] };
+    const PLATE = { 25: [[.9, .14, .17], .225, .06], 20: [[.1, .4, .95], .225, .055], 15: [[1, .77, 0], .205, .045], 10: [[.1, .72, .32], .175, .036], 5: [[.93, .93, .9], .135, .026] };
     const TAU = 6.28318, rad = d => d * .0174533, lerp = (a, b, t) => a + (b - a) * t, mix2 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)], ss = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 
-    /* --- primitives the particles sit on --- */
-    let P = [];
-    const seg = (a, b, r, c, w, rz, al) => P.push({ t: 0, a, b, r, rz: rz || r, c, al: al == null ? 1 : al, w: w == null ? (Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) + .05) * r * 60 : w });
-    const ball = (a, r, c, w) => P.push({ t: 1, a, r, c, al: 1, w });
-    const disc = (a, r, th, c, w, al, rot) => P.push({ t: 2, a, r, th, c, al: al == null ? 1 : al, w, rot: rot || 0 });
-    const ring = (a, r, c, w) => P.push({ t: 3, a, r, c, al: 1, w });
-    const strip = (y, z, zw, c, w, al, f, scroll, x0, x1) => P.push({ t: 4, y, z, zw, c, al, w, f, scroll: scroll || 0, x0: x0 == null ? -2.3 : x0, x1: x1 == null ? 2.3 : x1, snap: true });
+    /* --- primitives the particles sit on. al = brightness, add = 1 glows, 0 is solid --- */
+    let P = [], J = {};
+    const seg = (a, b, r0, r1, c, w, al, add) => P.push({ t: 0, a, b, r0, r1, c, w, al: al == null ? .9 : al, add: add ? 1 : 0 });
+    const ell = (a, u, ru, rn, rz, c, w, al, add) => P.push({ t: 1, a, u, ru, rn, rz, c, w, al, add: add ? 1 : 0 });
+    const disc = (a, r, th, c, w, al) => P.push({ t: 2, a, r, th, c, w, al: al == null ? .95 : al, add: 0 });
+    const ring = (a, r, c, w) => P.push({ t: 3, a, r, c, w, al: .9, add: 0 });
+    const strip = (y, z, zw, c, w, al, f, scroll, add) => P.push({ t: 4, y, z, zw, c, w, al, f, scroll: scroll || 0, add: add ? 1 : 0, snap: true });
+    const cross = (c, w, al, scroll) => P.push({ t: 5, c, w, al, scroll: scroll || 0, add: 1, snap: true });
+    const torso = (h, s, c, w, al) => P.push({ t: 6, a: h, b: s, c, w, al, add: 1 });
+    const TD = [.108, .096, .112, .128, .1], TW = [.168, .138, .165, .205, .2]; // torso depth and width, hips to shoulders
 
-    // two-bone reach: where the knee or elbow goes, bending toward dir
-    function ik(R, T, a, b, dir) {
+    function ik(R, T, a, b, dir) { // two-bone reach: where the knee or elbow goes, bending toward dir
       const dx = T[0] - R[0], dy = T[1] - R[1], d = Math.min(a + b - .001, Math.max(Math.abs(a - b) + .001, Math.hypot(dx, dy)));
       const A = Math.acos(Math.min(1, Math.max(-1, (a * a + d * d - b * b) / (2 * a * d)))), th = Math.atan2(dy, dx);
       const j1 = [R[0] + a * Math.cos(th + A), R[1] + a * Math.sin(th + A)], j2 = [R[0] + a * Math.cos(th - A), R[1] + a * Math.sin(th - A)];
       return (j1[0] - R[0]) * dir[0] + (j1[1] - R[1]) * dir[1] > (j2[0] - R[0]) * dir[0] + (j2[1] - R[1]) * dir[1] ? j1 : j2;
     }
-    function body(o) {
-      const { hip, sh, head } = o, b = C.body;
-      seg([hip[0], hip[1], 0], [sh[0], sh[1], 0], .1, b, 15, .17);
-      seg([hip[0], hip[1], -.11], [hip[0], hip[1], .11], .085, b, 4);
-      seg([sh[0], sh[1], -.2], [sh[0], sh[1], .2], .062, b, 5);
-      seg([sh[0], sh[1], 0], [head[0], head[1], 0], .045, b, 1.2);
-      ball([head[0], head[1], 0], .112, b, 7);
+    const nrm = (a, b) => { const x = b[0] - a[0], y = b[1] - a[1], l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
+    function body(o) { // an athletic build: wide shoulders, narrow waist, tapered limbs
+      const { hip, sh, head } = o, b = C.body, A = small ? .5 : .36, up = nrm(hip, sh), nk = nrm(sh, head);
+      torso(hip, sh, b, 30, A);
+      ell([hip[0], hip[1], 0], up, .1, .112, .172, b, 7, A, 1);
+      seg([sh[0], sh[1], 0], [head[0] - nk[0] * .06, head[1] - nk[1] * .06, 0], .062, .05, b, 1.6, A, 1);
+      ell([head[0], head[1], 0], nk, .12, .098, .086, b, 7, A, 1);
+      J = { hip, sh, knee: null, ankle: null, elbow: null, hand: null };
       for (let i = 0; i < 2; i++) {
-        const s = i ? 1 : -1, an = o.feet[i], fz = s * (o.fz || .1), kn = ik(hip, an, .45, .45, o.knee), fa = (o.footAng && o.footAng[i]) || 0;
-        seg([hip[0], hip[1], s * .1], [kn[0], kn[1], (s * .1 + fz) / 2], .076, b, 7);
-        seg([kn[0], kn[1], (s * .1 + fz) / 2], [an[0], an[1], fz], .054, b, 5);
-        seg([an[0] - .04, an[1] - .03, fz], [an[0] + .19 * Math.cos(fa), an[1] - .04 + .19 * Math.sin(fa), fz], .036, b, 2);
-        const hd = o.hands[i], hz = s * (o.hz || .28), el = ik(sh, hd, .3, .28, o.elbow);
-        seg([sh[0], sh[1], s * .2], [el[0], el[1], (s * .2 + hz) / 2], .05, b, 4);
-        seg([el[0], el[1], (s * .2 + hz) / 2], [hd[0], hd[1], hz], .04, b, 3.4);
+        const s = i ? 1 : -1, an = o.feet[i], fz = s * (o.fz || .1), kn = ik(hip, an, .45, .45, o.knee), fa = (o.footAng && o.footAng[i]) || 0, kz = (s * .095 + fz) / 2;
+        seg([hip[0], hip[1], s * .095], [kn[0], kn[1], kz], .094, .06, b, 9, A, 1);
+        seg([kn[0], kn[1], kz], [an[0], an[1], fz], .062, .038, b, 6, A, 1);
+        seg([an[0] - .05, an[1] - .035, fz], [an[0] + .2 * Math.cos(fa), an[1] - .045 + .2 * Math.sin(fa), fz], .042, .028, b, 2.2, A, 1);
+        const hd = o.hands[i], hz = s * (o.hz || .28), el = ik(sh, hd, .3, .28, o.elbow), ez = (s * .21 + hz) / 2, fd = nrm(el, hd);
+        ell([sh[0], sh[1], s * .205], up, .075, .072, .07, b, 2.4, A, 1);
+        seg([sh[0], sh[1], s * .21], [el[0], el[1], ez], .058, .044, b, 4.6, A, 1);
+        seg([el[0], el[1], ez], [hd[0], hd[1], hz], .047, .031, b, 3.8, A, 1);
+        ell([hd[0] + fd[0] * .04, hd[1] + fd[1] * .04, hz], fd, .055, .03, .038, b, 1, A, 1);
+        if (!i) { J.knee = kn; J.ankle = an; J.elbow = el; J.hand = hd; }
       }
     }
     function barbell(x, y, plates, loaded) {
-      seg([x, y, -.66], [x, y, .66], .014, C.steel, 4);
+      J.bar = [x, y];
+      seg([x, y, -.66], [x, y, .66], .014, .014, C.steel, 5, .9);
       for (const s of [-1, 1]) {
-        seg([x, y, s * .66], [x, y, s * 1.06], .025, C.steel, 2.2);
-        disc([x, y, s * .665], .045, .02, C.steel, .8);
-        let z = .7;
-        plates.forEach((kg, j) => { const [c, r, th] = PLATE[kg], on = j < loaded; disc([x, y, s * (z + th / 2 + (on ? 0 : .8))], r, th, c, r * r * 400, on ? 1 : 0); z += th + .012; });
+        seg([x, y, s * .66], [x, y, s * 1.08], .026, .026, C.steel, 2.6, .9);
+        disc([x, y, s * .67], .05, .03, C.steel, 1.2);
+        let z = .71;
+        plates.forEach((kg, j) => { const [c, r, th] = PLATE[kg], on = j < loaded, zz = s * (z + th / 2 + (on ? 0 : .9));
+          disc([x, y, zz], r, th, c, r * r * 210, on ? 1 : 0); disc([x, y, zz], r * .3, th * 1.25, C.steel, r * 12, on ? .9 : 0); z += th + .012; });
       }
     }
-    const floor = () => { strip(0, 0, 1.5, C.dim, 7, .55, null, 0, -1.5, 1.5); };
+    const floor = s => { strip(0, 0, 3.4, C.grid, 10, .5, null, 0, 1); cross(C.grid, 8, .5, s || 0); strip(.002, 0, .012, C.grid, 2, .9, null, 0, 1); };
     function bench(x0, x1, y) {
-      seg([x0, y, 0], [x1, y, 0], .05, C.slate, 9, .17);
-      for (const x of [x0 + .12, x1 - .12]) for (const s of [-1, 1]) seg([x, y - .04, s * .13], [x, 0, s * .13], .02, C.slate, .9);
+      seg([x0, y, 0], [x1, y, 0], .05, .05, C.slate, 10, .8); P[P.length - 1].zs = 3.2;
+      for (const x of [x0 + .12, x1 - .12]) for (const s of [-1, 1]) seg([x, y - .04, s * .13], [x, 0, s * .13], .018, .018, C.slate, 1, .8);
     }
 
     /* --- the six movements. p is progress through one rep (0 to 1), t is seconds since the movement began --- */
-    const upDown = (p, a, b, c, d) => p < a ? ss(p / a) : p < b ? 1 : p < c ? 1 - ss((p - b) / (c - b)) : 0;
+    const upDown = (p, a, b, c) => p < a ? ss(p / a) : p < b ? 1 : p < c ? 1 - ss((p - b) / (c - b)) : 0;
     const KEYS = [ // power clean
       { t: 0, hip: [-.33, .58], L: 68, bar: [.09, .225], up: 0, el: [-1, 0] }, { t: .2, hip: [-.26, .76], L: 52, bar: [.1, .52], up: 0, el: [-1, 0] },
       { t: .33, hip: [0, .96], L: -10, bar: [.07, 1.02], up: .06, el: [-1, .5] }, { t: .45, hip: [-.14, .7], L: 6, bar: [.1, 1.24], up: 0, el: [1, -.1] },
       { t: .6, hip: [-.02, .9], L: 0, bar: [.11, 1.46], up: 0, el: [1, -.1] }, { t: .76, hip: [-.02, .9], L: 0, bar: [.11, 1.46], up: 0, el: [1, -.1] },
       { t: .88, hip: [-.02, .9], L: -3, bar: [.03, .875], up: 0, el: [-1, 0] }, { t: 1, hip: [-.33, .58], L: 68, bar: [.09, .225], up: 0, el: [-1, 0] }];
+    const headOf = (sh, L) => [sh[0] + .21 * Math.sin(L * .6), sh[1] + .21 * Math.cos(L * .6)];
     const MOVES = [
-      { name: 'Deadlift', reps: 3, dur: 2.5, plates: [25, 20, 15], draw(p, rep) {
-        const u = upDown(p, .4, .58, .93), hip = mix2([-.33, .58], [-.02, .9], u), L = rad(lerp(68, -3, u)), sh = [hip[0] + .55 * Math.sin(L), hip[1] + .55 * Math.cos(L)], bar = mix2([.09, .225], [.03, .875], u);
-        floor(); body({ hip, sh, head: [sh[0] + .2 * Math.sin(L * .6), sh[1] + .2 * Math.cos(L * .6)], feet: [[0, .07], [0, .07]], knee: [1, .2], hands: [bar, bar], elbow: [-1, 0] });
+      { name: 'Deadlift', reps: 3, dur: 3.4, plates: [25, 20, 15], tags: ['hip', 'knee'], draw(p, rep) {
+        const u = upDown(p, .36, .56, .92), hip = mix2([-.33, .58], [-.02, .9], u), L = rad(lerp(68, -3, u)), sh = [hip[0] + .55 * Math.sin(L), hip[1] + .55 * Math.cos(L)], bar = mix2([.09, .225], [.03, .875], u);
+        floor(); body({ hip, sh, head: headOf(sh, L), feet: [[0, .07], [0, .07]], knee: [1, .2], hands: [bar, bar], elbow: [-1, 0] });
         barbell(bar[0], bar[1], this.plates, rep + 1); } },
-      { name: 'Bench press', reps: 3, dur: 2.3, plates: [20, 10, 10], draw(p, rep) {
-        const d = upDown(p, .4, .47, .85), bar = [-.3, lerp(1.125, .76, d)];
+      { name: 'Bench press', reps: 3, dur: 3.2, plates: [20, 10, 10], tags: ['elbow'], draw(p, rep) {
+        const d = upDown(p, .42, .5, .86), bar = [-.3, lerp(1.125, .76, d)];
         floor(); bench(-.8, .32, .4);
-        body({ hip: [.22, .53], sh: [-.33, .55], head: [-.52, .56], feet: [[.66, .07], [.66, .07]], fz: .17, knee: [.5, 1], hands: [bar, bar], hz: .36, elbow: [.5, -1] });
+        body({ hip: [.22, .53], sh: [-.33, .55], head: [-.54, .56], feet: [[.66, .07], [.66, .07]], fz: .17, knee: [.5, 1], hands: [bar, bar], hz: .36, elbow: [.5, -1] });
         barbell(bar[0], bar[1], this.plates, rep + 1); } },
-      { name: 'Power clean', reps: 3, dur: 2.7, plates: [15, 10, 5], draw(p, rep) {
+      { name: 'Power clean', reps: 3, dur: 3.5, plates: [15, 10, 5], tags: ['hip', 'knee'], draw(p, rep) {
         let i = 0; while (i < KEYS.length - 2 && p > KEYS[i + 1].t) i++;
         const a = KEYS[i], b = KEYS[i + 1], k = ss((p - a.t) / (b.t - a.t)), hip = mix2(a.hip, b.hip, k), L = rad(lerp(a.L, b.L, k)), sh = [hip[0] + .55 * Math.sin(L), hip[1] + .55 * Math.cos(L)], bar = mix2(a.bar, b.bar, k), up = lerp(a.up, b.up, k);
-        floor(); body({ hip, sh, head: [sh[0] + .2 * Math.sin(L * .6), sh[1] + .2 * Math.cos(L * .6)], feet: [[0, .07 + up], [0, .07 + up]], footAng: [-up * 6, -up * 6], knee: [1, .2], hands: [bar, bar], elbow: mix2(a.el, b.el, k) });
+        floor(); body({ hip, sh, head: headOf(sh, L), feet: [[0, .07 + up], [0, .07 + up]], footAng: [-up * 6, -up * 6], knee: [1, .2], hands: [bar, bar], elbow: mix2(a.el, b.el, k) });
         barbell(bar[0], bar[1], this.plates, rep + 1); } },
-      { name: 'Hip thrust', reps: 3, dur: 2.3, plates: [25, 25, 20], draw(p, rep) {
+      { name: 'Hip thrust', reps: 3, dur: 3.1, plates: [25, 25, 20], tags: ['hip'], draw(p, rep) {
         const u = upDown(p, .34, .6, .94), hip = mix2([-.08, .27], [0, .53], u), sh = [-.55, .5], bar = [hip[0] + .03, hip[1] + .13];
         floor(); bench(-1.02, -.5, .36);
-        body({ hip, sh, head: [sh[0] - .19, sh[1] + lerp(.12, .05, u)], feet: [[.5, .07], [.5, .07]], fz: .15, knee: [.2, 1], hands: [bar, bar], hz: .3, elbow: [0, -1] });
+        body({ hip, sh, head: [sh[0] - .2, sh[1] + lerp(.12, .05, u)], feet: [[.5, .07], [.5, .07]], fz: .15, knee: [.2, 1], hands: [bar, bar], hz: .3, elbow: [0, -1] });
         barbell(bar[0], bar[1], this.plates, rep + 1); } },
-      { name: 'Run', reps: 1, dur: 6.5, unit: 'KM', goal: 42.2, draw(p, rep, t) {
+      { name: 'Run', reps: 1, dur: 7.5, unit: 'KM', goal: 42.2, tags: ['knee'], note: 'Cadence 174 spm', draw(p, rep, t) {
         const ph = t * TAU * 1.45, hip = [0, .9 + .035 * Math.cos(2 * ph)], L = rad(9), sh = [hip[0] + .55 * Math.sin(L), hip[1] + .55 * Math.cos(L)], feet = [], hands = [], fa = [];
         for (let i = 0; i < 2; i++) { const a = ph + i * 3.14159, c = Math.cos(a), s = Math.sin(a), lift = Math.max(0, c);
           feet.push([.4 * s - .03, .07 + lift * (.2 + .2 * Math.max(0, -s))]); fa.push(-.9 * lift * Math.max(0, -s));
           hands.push([sh[0] + .05 - .25 * s, sh[1] - .3 - .09 * s]); }
-        strip(0, 0, 1.2, C.dim, 9, .6, null, t * 3.2); strip(.004, .42, .02, C.pop, 3, .9, null, t * 3.2); strip(.004, -.42, .02, C.pop, 3, .9, null, t * 3.2);
-        body({ hip, sh, head: [sh[0] + .05, sh[1] + .2], feet, footAng: fa, knee: [1, .1], hands, hz: .25, elbow: [-1, -.5] }); } },
-      { name: 'Ride', reps: 1, dur: 7.5, unit: 'KM', goal: 409, draw(p, rep, t) {
+        floor(t * 3.2); strip(.004, .45, .03, C.pop, 3.5, .95, null, t * 3.2); strip(.004, -.45, .03, C.pop, 3.5, .95, null, t * 3.2);
+        body({ hip, sh, head: [sh[0] + .05, sh[1] + .21], feet, footAng: fa, knee: [1, .1], hands, hz: .25, elbow: [-1, -.5] }); } },
+      { name: 'Ride', reps: 1, dur: 8.5, unit: 'KM', goal: 409, tags: ['knee'], note: 'Cadence 81 rpm', draw(p, rep, t) {
         const th = -t * TAU * 1.35, bb = [-.06, .3], hip = [-.24, 1], L = rad(48), sh = [hip[0] + .55 * Math.sin(L), hip[1] + .55 * Math.cos(L)], g = C.bike, feet = [];
-        strip(0, 0, .5, C.dim, 7, .6, null, t * 4.2);
-        strip(.62, -1, .03, C.pop, 9, .95, x => .2 * Math.sin(.9 * x) + .12 * Math.sin(2.1 * x + 1) + .06 * Math.sin(4.3 * x), t * .9); // the climb profile, scrolling behind
-        for (const hx of [-.52, .52]) { ring([hx, .34, 0], .34, C.tyre, 6); for (let k = 0; k < 8; k++) { const a = th * 1.2 + k * TAU / 8; seg([hx, .34, 0], [hx + .33 * Math.cos(a), .34 + .33 * Math.sin(a), 0], .004, C.tyre, .35); } }
+        floor(t * 4.2);
+        strip(.7, -1.15, .04, C.pop, 10, .95, x => .22 * Math.sin(.9 * x) + .13 * Math.sin(2.1 * x + 1) + .06 * Math.sin(4.3 * x), t * .9); // the climb profile, scrolling behind
+        for (const hx of [-.52, .52]) { ring([hx, .34, 0], .34, C.tyre, 9); for (let k = 0; k < 10; k++) { const a = th * 1.2 + k * TAU / 10; seg([hx, .34, 0], [hx + .33 * Math.cos(a), .34 + .33 * Math.sin(a), 0], .004, .004, C.tyre, .4, .7); } }
         const st = [-.2, .92], hb = [.36, .66], ht = [.33, .88];
-        [[bb, st], [bb, [-.52, .34]], [[-.19, .84], [-.52, .34]], [bb, hb], [[-.19, .86], ht], [ht, hb], [hb, [.52, .34]], [ht, [.41, .93]]].forEach(([a, b]) => seg([a[0], a[1], 0], [b[0], b[1], 0], .017, g, 1.5));
-        seg([-.31, .955, 0], [-.11, .955, 0], .026, C.slate, 1); seg([.41, .93, -.2], [.41, .93, .2], .014, g, 1); disc([bb[0], bb[1], .05], .09, .01, C.steel, 1);
+        [[bb, st], [bb, [-.52, .34]], [[-.19, .84], [-.52, .34]], [bb, hb], [[-.19, .86], ht], [ht, hb], [hb, [.52, .34]], [ht, [.41, .93]]].forEach(([a, b]) => seg([a[0], a[1], 0], [b[0], b[1], 0], .019, .019, g, 2.4, .95));
+        seg([-.31, .955, 0], [-.11, .955, 0], .028, .022, C.slate, 1.2, .9); seg([.41, .93, -.2], [.41, .93, .2], .014, .014, g, 1.2, .95); disc([bb[0], bb[1], .05], .09, .012, C.steel, 1.4);
         for (let i = 0; i < 2; i++) { const s = i ? 1 : -1, a = th + i * 3.14159, pd = [bb[0] + .17 * Math.cos(a), bb[1] + .17 * Math.sin(a)];
-          seg([bb[0], bb[1], s * .07], [pd[0], pd[1], s * .09], .012, C.steel, .5); seg([.41, .93, s * .2], [.48, .85, s * .2], .014, g, .5); feet.push([pd[0] - .02, pd[1] + .08]); }
-        body({ hip, sh, head: [sh[0] + .13, sh[1] + .15], feet, fz: .09, footAng: [.1, .1], knee: [1, .6], hands: [[.48, .87], [.48, .87]], hz: .2, elbow: [0, -1] }); } }];
+          seg([bb[0], bb[1], s * .07], [pd[0], pd[1], s * .09], .012, .012, C.steel, .6, .9); seg([.41, .93, s * .2], [.48, .85, s * .2], .014, .014, g, .6, .95); feet.push([pd[0] - .02, pd[1] + .08]); }
+        body({ hip, sh, head: [sh[0] + .14, sh[1] + .16], feet, fz: .09, footAng: [.1, .1], knee: [1, .6], hands: [[.48, .87], [.48, .87]], hz: .2, elbow: [0, -1] }); } }];
 
     /* --- particles --- */
-    const pos = new Float32Array(N * 3), col = new Float32Array(N * 4), rnd = new Float32Array(N * 4), size = new Float32Array(N), who = new Uint16Array(N), tg = [0, 0, 0];
-    for (let i = 0; i < N * 4; i++) rnd[i] = Math.random();
-    for (let i = 0; i < N; i++) { size[i] = Math.random(); pos[i * 3] = (Math.random() - .5) * 3; pos[i * 3 + 1] = Math.random() * 2; pos[i * 3 + 2] = (Math.random() - .5) * 3; }
+    const pos = new Float32Array(N * 3), col = new Float32Array(N * 4), sz = new Float32Array(N * 2), who = new Uint16Array(N), tg = [0, 0, 0];
+    const ra = new Float32Array(N), rc = new Float32Array(N), rd = new Float32Array(N), cb = new Float32Array(N), sb = new Float32Array(N), ca = new Float32Array(N), sa = new Float32Array(N), sq = new Float32Array(N), ux = new Float32Array(N), uy = new Float32Array(N), uz = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const a = Math.random(), b = Math.random(), z = 2 * a - 1, s = Math.sqrt(1 - z * z);
+      ra[i] = a; rc[i] = Math.random(); rd[i] = Math.random(); cb[i] = Math.cos(b * TAU); sb[i] = Math.sin(b * TAU); ca[i] = Math.cos(a * TAU); sa[i] = Math.sin(a * TAU); sq[i] = Math.sqrt(b);
+      ux[i] = z; uy[i] = s * cb[i]; uz[i] = s * sb[i]; sz[i * 2] = Math.random(); pos[i * 3] = (Math.random() - .5) * 3; pos[i * 3 + 1] = Math.random() * 1.8; pos[i * 3 + 2] = (Math.random() - .5) * 3; }
     const bP = gl.createBuffer(), bC = gl.createBuffer(), bS = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, bS); gl.bufferData(gl.ARRAY_BUFFER, size, gl.STATIC_DRAW); gl.enableVertexAttribArray(aS); gl.vertexAttribPointer(aS, 1, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(aP); gl.enableVertexAttribArray(aC);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0);
+    gl.enableVertexAttribArray(aP); gl.enableVertexAttribArray(aC); gl.enableVertexAttribArray(aS);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0);
 
     function assign() { // hand each particle a primitive, in proportion to how much surface it has
       let tot = 0; for (const q of P) tot += q.w;
       const order = new Uint32Array(N); for (let i = 0; i < N; i++) order[i] = i;
       for (let i = N - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)), x = order[i]; order[i] = order[j]; order[j] = x; }
-      let k = 0, acc = 0; P.forEach((q, qi) => { acc += q.w; const end = Math.round(acc / tot * N); for (; k < end; k++) who[order[k]] = qi; });
+      let k = 0, acc = 0; P.forEach((q, qi) => { acc += q.w; const end = Math.round(acc / tot * N); for (; k < end; k++) { who[order[k]] = qi; sz[order[k] * 2 + 1] = q.add; } });
+      gl.bindBuffer(gl.ARRAY_BUFFER, bS); gl.bufferData(gl.ARRAY_BUFFER, sz, gl.DYNAMIC_DRAW); gl.vertexAttribPointer(aS, 2, gl.FLOAT, false, 0, 0);
     }
     function target(i) {
-      const q = P[who[i]], a = rnd[i * 4], b = rnd[i * 4 + 1], c = rnd[i * 4 + 2], d = rnd[i * 4 + 3];
-      if (q.t === 0) { const A = q.a, B = q.b, dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], an = b * TAU, r = .55 + .45 * c, l = Math.hypot(dx, dy);
-        tg[0] = A[0] + dx * a; tg[1] = A[1] + dy * a; tg[2] = A[2] + dz * a;
-        if (Math.abs(dz) > l) { tg[0] += Math.cos(an) * q.r * r; tg[1] += Math.sin(an) * q.rz * r; } else { tg[0] += -dy / l * Math.cos(an) * q.r * r; tg[1] += dx / l * Math.cos(an) * q.r * r; tg[2] += Math.sin(an) * q.rz * r; }
-      } else if (q.t === 1) { const z = 2 * a - 1, s = Math.sqrt(1 - z * z), an = b * TAU; tg[0] = q.a[0] + q.r * s * Math.cos(an); tg[1] = q.a[1] + q.r * s * Math.sin(an); tg[2] = q.a[2] + q.r * z;
-      } else if (q.t === 2) { const an = a * TAU, r = q.r * (d < .24 ? .95 + .05 * b : Math.sqrt(b)); tg[0] = q.a[0] + r * Math.cos(an); tg[1] = q.a[1] + r * Math.sin(an); tg[2] = q.a[2] + (c - .5) * q.th;
-      } else if (q.t === 3) { const an = a * TAU, r = q.r + (b - .5) * .034; tg[0] = q.a[0] + r * Math.cos(an); tg[1] = q.a[1] + r * Math.sin(an); tg[2] = q.a[2] + (c - .5) * .034;
-      } else { const span = q.x1 - q.x0; let x = (a * span - q.scroll) % span; if (x < 0) x += span; x += q.x0; tg[0] = x; tg[1] = q.y + (q.f ? q.f(x + q.scroll) : 0); tg[2] = q.z + (c - .5) * q.zw; }
+      const q = P[who[i]], a = ra[i], c = rc[i];
+      switch (q.t) {
+        case 0: { const A = q.a, B = q.b, dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], r = lerp(q.r0, q.r1, a) * (.86 + .14 * c), l = Math.hypot(dx, dy);
+          tg[0] = A[0] + dx * a; tg[1] = A[1] + dy * a; tg[2] = A[2] + dz * a;
+          if (Math.abs(dz) > l) { tg[0] += cb[i] * r; tg[1] += sb[i] * r; } else { tg[0] -= dy / l * cb[i] * r; tg[1] += dx / l * cb[i] * r; tg[2] += sb[i] * r * (q.zs || 1); } break; }
+        case 1: { const u = q.u, k = .9 + .1 * c; tg[0] = q.a[0] + (u[0] * ux[i] * q.ru - u[1] * uy[i] * q.rn) * k; tg[1] = q.a[1] + (u[1] * ux[i] * q.ru + u[0] * uy[i] * q.rn) * k; tg[2] = q.a[2] + uz[i] * q.rz * k; break; }
+        case 2: { const r = q.r * (rd[i] < .2 ? .96 + .04 * c : sq[i]); tg[0] = q.a[0] + r * ca[i]; tg[1] = q.a[1] + r * sa[i]; tg[2] = q.a[2] + (c - .5) * q.th; break; }
+        case 3: { const r = q.r + (c - .5) * .036; tg[0] = q.a[0] + r * ca[i]; tg[1] = q.a[1] + r * sa[i]; tg[2] = q.a[2] + (rd[i] - .5) * .036; break; }
+        case 4: { let x = (a * 5 - q.scroll) % 5; if (x < 0) x += 5; x -= 2.5; tg[0] = x; tg[1] = q.y + (q.f ? q.f(x + q.scroll) : 0); tg[2] = q.z + (q.zw > 1 ? Math.round(c * 8) / 8 - .5 : c - .5) * q.zw; break; }
+        case 5: { let x = (Math.floor(a * 11) * .5 - q.scroll) % 5; if (x < 0) x += 5; tg[0] = x - 2.5; tg[1] = 0; tg[2] = (c - .5) * 3.4; break; }
+        default: { const H = q.a, S = q.b, dx = S[0] - H[0], dy = S[1] - H[1], l = Math.hypot(dx, dy) || 1, f = a * 3.999, n = f | 0, k = f - n, rx = lerp(TD[n], TD[n + 1], k) * (.9 + .1 * c), rz = lerp(TW[n], TW[n + 1], k) * (.9 + .1 * c);
+          tg[0] = H[0] + dx * a - dy / l * cb[i] * rx; tg[1] = H[1] + dy * a + dx / l * cb[i] * rx; tg[2] = sb[i] * rz; }
+      }
       return q;
     }
 
-    let mi = 0, t0 = performance.now() / 1000, last = t0, on = true, W = 0, H = 0, rx = -.62, ry = .1, shown = 0, morph = 1, lastRep = -1;
+    let mi = 0, t0 = performance.now() / 1000, last = t0, on = true, W = 0, H = 0, D = 1, rx = -.95, ry = .09, shown = 0, morph = 1, lastRep = -1, sc = 1, ox = 0, oy = 0, asp = 1; const trail = [];
     const tap = matchMedia('(hover: none)').matches ? 'Tap' : 'Click';
-    function start(i) { mi = i; t0 = performance.now() / 1000; morph = 0; lastRep = -1; P = []; MOVES[mi].draw(0, 0, 0); assign();
-      for (let k = 0; k < N * 3; k++) pos[k] += (Math.random() - .5) * .5;
+    function start(i) { mi = i; t0 = performance.now() / 1000; morph = 0; lastRep = -1; trail.length = 0; P = []; MOVES[mi].draw(0, 0, 0); assign();
+      for (let k = 0; k < N * 3; k++) pos[k] += (Math.random() - .5) * .35;
       if (label) label.textContent = `${MOVES[mi].name}, ${mi + 1} of ${MOVES.length}. ${tap} for the next.`;
       if (hudN) hudN.textContent = MOVES[mi].name; if (hudU) hudU.textContent = MOVES[mi].unit || 'KG'; if (MOVES[mi].goal) shown = 0; }
     function place() { // desktop: centre of the hero. phone: its own band between the name and the headline
-      const d = Math.min(devicePixelRatio || 1, small ? 1.5 : 2); W = hero.clientWidth; H = hero.clientHeight; fig.width = W * d; fig.height = H * d; gl.viewport(0, 0, fig.width, fig.height);
-      let cx = W * .5, cy = H * .5, h = H * .7;
-      if (small && stage) { const r = stage.getBoundingClientRect(), hr = hero.getBoundingClientRect(); cx = W * .5; cy = r.top - hr.top + r.height * .5; h = r.height * .94; }
-      const unit = Math.min(h / 2.15, W / (small ? 2.7 : 3.1));
-      gl.uniform1f(uAsp, W / H); gl.uniform1f(uScale, unit / (H / 2)); gl.uniform2f(uOff, cx / W * 2 - 1, 1 - cy / H * 2); gl.uniform1f(uPx, d * Math.max(.8, unit / 190));
-      if (hud && small && stage) { const r = stage.getBoundingClientRect(), hr = hero.getBoundingClientRect(); hud.style.top = (r.top - hr.top + 4) + 'px'; }
+      D = Math.min(devicePixelRatio || 1, small ? 1.5 : 2); W = hero.clientWidth; H = hero.clientHeight;
+      for (const c of [fig, ana]) { c.width = W * D; c.height = H * D; } gl.viewport(0, 0, fig.width, fig.height);
+      let cx = W * .54, cy = H * .54, h = H * .74;
+      if (small && stage) { const r = stage.getBoundingClientRect(), hr = hero.getBoundingClientRect(); cx = W * .5; cy = r.top - hr.top + r.height * .5; h = r.height; if (hud) hud.style.top = (r.top - hr.top) + 'px'; }
+      const unit = Math.min(h / 2.05, W / (small ? 2.5 : 2.9));
+      asp = W / H; sc = unit / (H / 2); ox = cx / W * 2 - 1; oy = 1 - cy / H * 2;
+      gl.uniform1f(uAsp, asp); gl.uniform1f(uScale, sc); gl.uniform2f(uOff, ox, oy); gl.uniform1f(uPx, D * Math.max(.85, unit / 230));
     }
-    hero.classList.add('gl'); place(); addEventListener('resize', place); setTimeout(place, 600); start(0);
+    const proj = (x, y, z) => { // same camera as the shader, for the labels drawn on top
+      let px = x, py = y - .82, pz = z; const cy = Math.cos(rx), sy = Math.sin(rx), cx = Math.cos(ry), sx = Math.sin(ry);
+      const x1 = px * cy + pz * sy, z1 = -px * sy + pz * cy, y2 = py * cx - z1 * sx, z2 = py * sx + z1 * cx, k = 1 / (1 - z2 * .2);
+      return [(x1 * k * sc / asp + ox + 1) * W / 2, (1 - (y2 * k * sc + oy)) * H / 2]; };
+    const ang = (a, b, c) => { const v1 = [a[0] - b[0], a[1] - b[1]], v2 = [c[0] - b[0], c[1] - b[1]]; return Math.round(Math.acos(Math.min(1, Math.max(-1, (v1[0] * v2[0] + v1[1] * v2[1]) / (Math.hypot(...v1) * Math.hypot(...v2) || 1)))) * 57.2958); };
+    function overlay(m, fadeIn) { // the analysis layer: path of the bar or foot, joint markers, live joint angles
+      cx2.setTransform(D, 0, 0, D, 0, 0); cx2.clearRect(0, 0, W, H); if (fadeIn <= 0) return;
+      const track = J.bar || J.ankle; if (track) { trail.push(track[0], track[1]); if (trail.length > 240) trail.splice(0, 2); }
+      cx2.lineWidth = 1.5; cx2.lineCap = 'round';
+      for (let i = 2; i < trail.length; i += 2) { const a = proj(trail[i - 2], trail[i - 1], J.bar ? 0 : -.1), b = proj(trail[i], trail[i + 1], J.bar ? 0 : -.1); cx2.strokeStyle = `rgba(255,196,0,${(i / trail.length) * .85 * fadeIn})`; cx2.beginPath(); cx2.moveTo(a[0], a[1]); cx2.lineTo(b[0], b[1]); cx2.stroke(); }
+      const tags = { hip: J.knee && [J.sh, J.hip, J.knee, 'Hip', -1], knee: J.knee && [J.hip, J.knee, J.ankle, 'Knee', 1], elbow: J.elbow && [J.sh, J.elbow, J.hand, 'Elbow', 1] };
+      cx2.font = `${small ? 13 : 16}px 'Jersey 25','VT323',monospace`; cx2.textBaseline = 'middle';
+      (m.tags || []).forEach(k => { const g = tags[k]; if (!g) return; const z = k === 'hip' ? 0 : -.12, p = proj(g[1][0], g[1][1], z), d = (small ? 44 : 64) * g[4], tx = p[0] + d, ty = p[1] - (k === 'hip' ? 18 : -14);
+        cx2.strokeStyle = `rgba(255,196,0,${.9 * fadeIn})`; cx2.fillStyle = `rgba(255,196,0,${.16 * fadeIn})`; cx2.beginPath(); cx2.arc(p[0], p[1], small ? 5 : 7, 0, TAU); cx2.fill(); cx2.stroke();
+        cx2.strokeStyle = `rgba(255,255,255,${.35 * fadeIn})`; cx2.lineWidth = 1; cx2.beginPath(); cx2.moveTo(p[0] + Math.sign(d) * 9, p[1]); cx2.lineTo(tx - Math.sign(d) * 4, ty); cx2.stroke();
+        cx2.textAlign = d > 0 ? 'left' : 'right'; cx2.fillStyle = `rgba(255,255,255,${.6 * fadeIn})`; cx2.fillText(g[3], tx, ty - (small ? 8 : 10));
+        cx2.fillStyle = `rgba(255,196,0,${fadeIn})`; cx2.font = `${small ? 18 : 24}px 'Jersey 25','VT323',monospace`; cx2.fillText(ang(g[0], g[1], g[2]) + '°', tx, ty + (small ? 8 : 10)); cx2.font = `${small ? 13 : 16}px 'Jersey 25','VT323',monospace`; cx2.lineWidth = 1.5; });
+      if (m.note) { const p = proj(-.75, .02, 1.1); cx2.textAlign = 'left'; cx2.fillStyle = `rgba(255,255,255,${.6 * fadeIn})`; cx2.fillText(m.note, Math.max(18, p[0]), p[1] + 16); }
+    }
+    hero.classList.add('gl'); place(); addEventListener('resize', place); setTimeout(place, 700); start(0);
     hero.addEventListener('click', e => { if (!e.target.closest('a,button:not(#pose),input,select')) start((mi + 1) % MOVES.length); });
     new IntersectionObserver(([e]) => { on = e.isIntersecting; if (on) { last = performance.now() / 1000; requestAnimationFrame(frame); } }).observe(hero);
 
@@ -1214,26 +1253,27 @@ footer a:hover{color:#fff}
       if (t >= total && !document.hidden) { start((mi + 1) % MOVES.length); requestAnimationFrame(frame); return; }
       const rep = Math.min(m.reps - 1, Math.floor(t / m.dur)), p = (t % m.dur) / m.dur;
       P = []; m.draw(p, rep, t);
-      morph = Math.min(1, morph + dt / .9);
-      const kf = Math.min(1, dt * lerp(3.2, 15, ss(morph))), kc = Math.min(1, dt * 7);
+      morph = Math.min(1, morph + dt / 1.1);
+      const kf = Math.min(1, dt * lerp(2.6, 16, ss(morph))), kc = Math.min(1, dt * 6), done = morph >= 1;
       for (let i = 0; i < N; i++) {
         const q = target(i), j = i * 3, c = i * 4;
-        if (q.snap && morph >= 1) { pos[j] = tg[0]; pos[j + 1] += (tg[1] - pos[j + 1]) * kf; pos[j + 2] = tg[2]; }
+        if (q.snap && done) { pos[j] = tg[0]; pos[j + 1] += (tg[1] - pos[j + 1]) * kf; pos[j + 2] = tg[2]; }
         else { pos[j] += (tg[0] - pos[j]) * kf; pos[j + 1] += (tg[1] - pos[j + 1]) * kf; pos[j + 2] += (tg[2] - pos[j + 2]) * kf; }
-        const sh = .8 + .2 * rnd[c + 3];
-        col[c] += (q.c[0] * sh - col[c]) * kc; col[c + 1] += (q.c[1] * sh - col[c + 1]) * kc; col[c + 2] += (q.c[2] * sh - col[c + 2]) * kc; col[c + 3] += (q.al - col[c + 3]) * kc;
+        col[c] += (q.c[0] - col[c]) * kc; col[c + 1] += (q.c[1] - col[c + 1]) * kc; col[c + 2] += (q.c[2] - col[c + 2]) * kc; col[c + 3] += (q.al - col[c + 3]) * kc;
       }
       // readout: bar weight for the lifts, distance for the run and the ride
       const want = m.goal ? m.goal * ss(t / (total * .92)) : 20 + 2 * m.plates.slice(0, rep + 1).reduce((a, b) => a + b, 0);
       shown += (want - shown) * Math.min(1, dt * (m.goal ? 12 : 6));
       if (hudV) hudV.textContent = m.goal && m.goal < 100 ? shown.toFixed(1) : Math.round(shown);
       if (rep !== lastRep) { lastRep = rep; if (hud) { hud.classList.remove('hit'); void hud.offsetWidth; hud.classList.add('hit'); } }
-      const has = mx > -900, tx = -.62 + (has ? (mx / W - .5) * 1.5 : Math.sin(now / 3) * .4), ty = .1 + (has ? (my / H - .5) * .35 : 0);
-      rx += (tx - rx) * Math.min(1, dt * 4); ry += (ty - ry) * Math.min(1, dt * 4);
+      // camera stays in the three-quarter arc where form reads, never flat front-on
+      const has = mx > -900, tx = -.95 + (has ? (mx / W - .5) * .9 : Math.sin(now / 3.4) * .28), ty = .09 + (has ? (my / H - .5) * .22 : 0);
+      rx += (tx - rx) * Math.min(1, dt * 3.5); ry += (ty - ry) * Math.min(1, dt * 3.5);
       gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform2f(uRot, rx, ry);
       gl.bindBuffer(gl.ARRAY_BUFFER, bP); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW); gl.vertexAttribPointer(aP, 3, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, bC); gl.bufferData(gl.ARRAY_BUFFER, col, gl.DYNAMIC_DRAW); gl.vertexAttribPointer(aC, 4, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.POINTS, 0, N);
+      overlay(m, ss((morph - .55) / .45));
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
